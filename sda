@@ -1,0 +1,403 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <conio.h>
+
+//NODE STRUCT
+typedef struct nod{
+    int hp;
+    int class;
+    int key;
+    int ability;
+    struct nod* next;
+} TNOD;
+
+//GLOBAL VARIABLES
+TNOD *last = NULL;
+int keyIndex = 1;
+int classNr;
+int botsNr;
+int alive;
+
+//FUNCTION PROTOTYPE
+void addNode();
+void deleteNode(int key);
+void showInfo();
+void showPlayers();
+void gameRound(TNOD *currentNode);
+int checkGameOver();
+int RNG(int bound);
+
+int main() {
+    srand(time(0));
+    showInfo();
+    printf("                    Enter the number of your class: ");
+    scanf("%d", &classNr);
+    printf("                     Enter the number of enemies: ");
+    scanf("%d", &botsNr);
+    alive = botsNr+1;
+    printf("                         Let the battle begin!                          \n");
+
+    for(int i = 1; i <= botsNr; i++)
+        addNode();
+
+    while(checkGameOver())
+        gameRound(last->next);
+    return 0;
+}
+
+void addNode(){
+    TNOD *nextNode = malloc(sizeof(TNOD));
+
+    if(last->next == NULL){
+
+        nextNode->class = classNr;
+
+        nextNode->hp = 50;
+        if(nextNode->class == 1)
+            nextNode->hp = 65;
+
+        nextNode->key = keyIndex;
+        keyIndex++;
+
+        nextNode->ability = 1;
+
+        nextNode->next = nextNode;
+        last = nextNode;
+
+    }else{
+
+        nextNode->class = RNG(4);
+
+        nextNode->hp = 50;
+        if(nextNode->class == 1)
+            nextNode->hp = 65;
+
+        nextNode->key = keyIndex; keyIndex++;
+
+        nextNode->ability = 1;
+
+        nextNode->next = last->next;
+        last->next = nextNode;
+        last = nextNode;
+    }
+}
+
+void deleteNode(int key){
+    TNOD *temp, *position;
+    temp = last->next;
+    for(int i = 1; i <key-1; i++)
+        temp = temp->next;
+    position = temp->next;
+    temp->next = position->next;
+    free(position);
+}
+
+int RNG(int bound) {
+    int num = rand() % bound + 1;
+    return num;
+}
+
+void showPlayers(){
+    TNOD *temp = last->next;
+    printf("                                                                        \n");
+    printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+    printf("                                                                        \n");
+    do{
+        if(temp->key == 1)
+            switch(temp->class){
+                case 1:printf("   Player 1: YOU                HP: %d                Class: FIGHTER\n", temp->hp);break;
+                case 2:printf("   Player 1: YOU                HP: %d                Class: ARCHER\n",  temp->hp);break;
+                case 3:printf("   Player 1: YOU                HP: %d                Class: THIEF\n",   temp->hp);break;
+                case 4:printf("   Player 1: YOU                HP: %d                Class: WIZARD\n",  temp->hp);break;}
+        else
+            switch(temp->class){
+                case 1:printf("   Player %d: CPU                HP: %d                Class: FIGHTER\n", temp->key, temp->hp);break;
+                case 2:printf("   Player %d: CPU                HP: %d                Class: ARCHER\n",  temp->key, temp->hp);break;
+                case 3:printf("   Player %d: CPU                HP: %d                Class: THIEF\n",   temp->key, temp->hp);break;
+                case 4:printf("   Player %d: CPU                HP: %d                Class: WIZARD\n",  temp->key, temp->hp);break;
+            }
+        temp = temp->next;
+    }while(temp != last->next);
+
+}
+
+void gameRound(TNOD *currentNode){
+    showPlayers();
+    int hasHit = 0;
+    int ability;
+    int power;
+    int position;
+
+    if(currentNode->key == 1){
+        printf("   Press [ZERO] to use your Ability or [SPACE] to Strike!\n");
+        ability = getch();
+
+        if (ability == '0' && currentNode->ability == 1) {
+            printf("   You used your ability!\n");
+            currentNode->ability = 0;
+            switch (currentNode->class) {
+                case 1: {
+                    printf("   Enter your desired power (1-10): ");
+                    scanf("%d", &power);
+                    if (RNG(20) < 20 - power) {
+                        TNOD *temp = currentNode->next;
+                        temp->hp = temp->hp - power - 5;
+                        hasHit = 1;
+                        printf("\n   You taunted Player %d and hit them for %d DMG! [SPACE]\n", temp->key, (power + 5));
+                        if (temp->hp < 0) {
+                            printf("Player %d fainted! [SPACE]", temp->key);
+                            deleteNode(temp->key);
+                        }
+                        free(temp);
+                        getch();
+                    } else {
+                        printf("\n   Your sweaty hands missed the hit! [SPACE]\n");
+                        getch();
+                    }
+                }
+                    break;
+                case 2: {
+                    printf("   Enter your desired power (1 - 10): ");
+                    scanf("%d", &power);
+                    printf("   Choose an enemy to attack (2 - %d): ", (botsNr + 1));
+                    scanf("%d", &position);
+                    TNOD *temp = currentNode;
+                    while (temp->key != position) {
+                        temp = temp->next;
+                    }
+                    if (RNG(20) < 20 - power) {
+                        temp->hp = temp->hp - power * 2;
+                        hasHit = 1;
+                        printf("\n   You sniped Player %d for %d DMG! [SPACE]\n", temp->key, (power * 2));
+                        if (temp->hp < 0) {
+                            printf("Player %d fainted!", temp->key);
+                            deleteNode(temp->key);
+                        }
+                        free(temp);
+                        getch();
+                    } else {
+                        printf("\n   Your hand slipped and the arrow missed! [SPACE]\n");
+                        getch();
+                    }
+                    free(temp);
+                }
+                    break;
+                case 3: {
+                    currentNode->hp = currentNode->hp + 10;
+                    hasHit = 1;
+                    printf("   You catch your breath and heal for 10HP! [SPACE]\n");
+                }
+                    break;
+                case 4: {
+                    printf("   Choose an enemy to attack (2 - %d): ", (botsNr + 1));
+                    scanf("%d", &position);
+                    TNOD *temp = currentNode;
+                    while (temp->key != position) {
+                        temp = temp->next;
+                    }
+                    if (RNG(100) <= 20) {
+                        temp->hp = temp->hp - 100;
+                        hasHit = 1;
+                        printf("\n   Your Fireball burnt Player %d for 100 DMG! [SPACE]\n", temp->key);
+                        if (temp->hp < 0) {
+                            printf("Player %d fainted!", temp->key);
+                            deleteNode(temp->key);
+                        }
+                        free(temp);
+                        getch();
+                    } else {
+                        printf("\n   Your staff snipped in half! [SPACE]\n");
+                        getch();
+                    }
+                    free(temp);
+                }
+                    break;
+            }
+        }
+
+        if (ability == '0' && currentNode->ability == 0) {
+            printf("   You already used your Ability!\n");
+        }
+
+        if (hasHit == 0) {
+            printf("   Enter your desired power (1-10): ");
+            scanf("%d", &power);
+            if (RNG(20) < 20 - power) {
+                TNOD *temp = currentNode->next;
+                temp->hp = temp->hp - power;
+                printf("\n   You struck Player %d for %d DMG! [SPACE]\n", temp->key, (power));
+                if (temp->hp < 0) {
+                    printf("Player %d fainted!", temp->key);
+                    deleteNode(temp->key);
+                }
+                free(temp);
+                getch();
+            } else {
+                printf("   You missed the hit! [SPACE]\n");
+                getch();
+            }
+        }
+    }
+
+    currentNode = currentNode->next;
+    checkGameOver();
+
+    for(int i = 1; i <= alive-1; i++){
+        showPlayers();
+        hasHit = 0;
+        power = 0;
+        position = 0;
+
+        if(currentNode->ability == 1)
+            if(RNG(10) < 4){
+                currentNode->ability = 0;
+                switch (currentNode->class){
+                    case 1: {
+                        power = RNG(10);
+                        if(RNG(20) < 20 - power) {
+                            TNOD *temp = currentNode->next;
+                            temp->hp = temp->hp - power - 5;
+                            hasHit = 1;
+                            printf("\n   Player %d taunted Player %d and hit them for %d DMG! [SPACE]\n",
+                                   currentNode->key, temp->key, (power + 5));
+                            if(temp->hp < 0) {
+                                printf("Player %d fainted!", temp->key);
+                                deleteNode(temp->key);
+                            }
+                            free(temp);
+                            getch();
+                        }else{
+                            printf("\n   Player %d's sweaty hands missed the hit! [SPACE]\n", currentNode->key);
+                            getch();
+                        }
+                    }break;
+                    case 2: {
+                        power = RNG(10);
+                        position = currentNode->key;
+                        while (position == currentNode->key) {
+                            position = RNG(botsNr + 1);
+                        }
+                        TNOD *temp = currentNode;
+                        while (temp->key != position) {
+                            temp = temp->next;
+                        }
+                        if(RNG(20) < 20 - power) {
+                            temp->hp = temp->hp - power * 2;
+                            hasHit = 1;
+                            printf("\n   Player %d sniped Player %d for %d DMG! [SPACE]\n", currentNode->key, temp->key,
+                                   (power * 2));
+                            if(temp->hp < 0) {
+                                printf("Player %d fainted!", temp->key);
+                                deleteNode(temp->key);
+                            }
+                            free(temp);
+                            getch();
+                        }else{
+                            printf("\n   Player %d's bow slipped and the arrow missed! [SPACE]\n", currentNode->key);
+                            getch();
+                        }
+                        free(temp);
+                    }break;
+                    case 3: {
+                        currentNode->hp = currentNode->hp + 10;
+                        hasHit = 1;
+                        printf("   Player %d catches his breath and heals for 10HP! [SPACE]\n", currentNode->key);
+                    }break;
+                    case 4: {
+                        position = currentNode->key;
+                        while (position == currentNode->key){
+                            position = RNG(botsNr + 1);
+                        }
+                        TNOD *temp = currentNode;
+                        while (temp->key != position){
+                            temp = temp->next;
+                        }
+                        if(RNG(100) <= 20){
+                            temp->hp = temp->hp - 100;
+                            hasHit = 1;
+                            printf("\n   Player %d Fireballed Player %d for 100 DMG! [SPACE]\n", currentNode->key,
+                                   temp->key);
+                            if(temp->hp < 0){
+                                printf("Player %d fainted!", temp->key);
+                                deleteNode(temp->key);
+                            }
+                            free(temp);
+                            getch();
+                        }else{
+                            printf("\n   Player %d's staff snapped in two! [SPACE]\n", currentNode->key);
+                            getch();
+                        }
+                        free(temp);
+                    }break;
+                }
+            }
+
+        if(hasHit == 1)
+            break;
+
+        power = RNG(10);
+        if (RNG(20) < 20 - power) {
+            TNOD *temp = currentNode->next;
+            temp->hp = temp->hp - power;
+            printf("\n   Player %d struck Player %d for %d DMG! [SPACE]\n", currentNode->key, temp->key, (power));
+            if (temp->hp < 0) {
+                printf("   Player %d fainted!", temp->key);
+                deleteNode(temp->key);
+            }
+            free(temp);
+            getch();
+        }else{
+            printf("   Player %d missed the hit! [SPACE]\n", currentNode->key);
+            getch();
+        }
+        currentNode = currentNode->next;
+        checkGameOver();
+    }
+}
+
+int checkGameOver(TNOD *node){
+
+}
+
+void showInfo(){
+    printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+    printf("                                                                        \n");
+    printf("                                ROASTED!                                \n");
+    printf("                   (based on traditional game Fripta)                   \n");
+    printf("                                                                        \n");
+    printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+    printf("                                                                        \n");
+    printf("    The rules are simple: Choose the power of your strike and watch your\n");
+    printf("enemies perish! Each Player Strikes the one next to him, until only one \n");
+    printf("reigns victorious as the King of Roasts!                                \n");
+    printf("                                                                        \n");
+    printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+    printf("                                                                        \n");
+    printf("              Starting HP: 50    Strike power range: 1 - 10             \n");
+    printf("          Higher the power, higher the chance to miss! (1/2 DMG)        \n");
+    printf("                        Abilities are one-time use!                     \n");
+    printf("               A turn can either be a Strike or an Ability!             \n");
+    printf("                                                                        \n");
+    printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+    printf("                                                                        \n");
+    printf("                           Choose your class:                           \n");
+    printf("   FIGHTER(1)                                                           \n");
+    printf("   PASSIVE: +15 HP;                                                     \n");
+    printf("   ABILITY: Taunts his enemy and deals +5 DMG on his next attack;       \n");
+    printf("                                                                        \n");
+    printf("   ARCHER(2)                                                            \n");
+    printf("   PASSIVE: 20%% Critical Chance (2x DMG);                              \n");
+    printf("   ABILITY: Attack any enemy with a guaranteed Critical Strike;         \n");
+    printf("                                                                        \n");
+    printf("   THIEF(3)                                                             \n");
+    printf("   PASSIVE: 20%% Dodge Chance (1/2 DMG);                                \n");
+    printf("   ABILITY: Catch your breath and heal 10 HP;                           \n");
+    printf("                                                                        \n");
+    printf("   WIZARD(4)                                                            \n");
+    printf("   PASSIVE: Deal 3 more DMG on every Strike;                            \n");
+    printf("   ABILITY: Cast a fireball with 20%% chance to deal 100 DMG;           \n");
+    printf("                                                                        \n");
+    printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+    printf("                                                                        \n");
+}
